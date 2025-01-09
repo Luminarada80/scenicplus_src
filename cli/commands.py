@@ -146,6 +146,7 @@ def _run_cistarget_single_region_set(
         annotations_to_use,
         motif_similarity_fdr,
         orthologous_identity_threshold) -> cisTarget:
+    
     """Helper function to run cisTarget on a single region set."""
     from pycistarget.motif_enrichment_cistarget import cisTargetDatabase
     ctx_db = cisTargetDatabase(
@@ -153,6 +154,7 @@ def _run_cistarget_single_region_set(
         region_sets=region_set,
         name="cistarget",
         fraction_overlap=fraction_overlap_w_cistarget_database)
+    
     cistarget_result = cisTarget(
         region_set=region_set,
         name=name,

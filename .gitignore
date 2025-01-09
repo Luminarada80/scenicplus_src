@@ -1,5 +1,7 @@
 .pybiomart
-__pycahe__/
+cli/__pycache__/
+__pycache__
 *.py[cod]
 scplus_rtd
 .python-version
+*.pyc

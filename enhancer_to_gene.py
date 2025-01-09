@@ -135,6 +135,7 @@ def _score_regions_to_single_gene(
         acc = acc[:, cell_non_zero]
         if acc.shape[1] == 0 or exp.shape[0] == 0:
             return None
+
     # Check-up for genes with 1 region only, related to issue 2
     if acc.ndim == 1:
         acc = acc.reshape(-1, 1)
@@ -223,7 +224,6 @@ def _score_regions_to_genes(
 
     EXP = df_exp_mtx[gene_names].to_numpy()
     ACC = df_acc_mtx.to_numpy()
-
 
     # Parallel processing with validation
     regions_to_genes = dict(
