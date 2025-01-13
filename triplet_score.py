@@ -68,42 +68,87 @@ def _rank_scores_and_assign_random_ranking_in_range_for_ties(
 
         return ranking_with_broken_ties_for_motif_or_track_numpy
 
-def get_max_rank_of_motif_for_each_TF(
-        cistromes: mudata.AnnData,
-        ranking_db_fname: str
-) -> pd.DataFrame:
-        # Read database for target regions
-        pr_all_target_regions = pr.PyRanges(
-                region_names_to_coordinates(
-                cistromes.obs_names))
-        ctx_db = cisTargetDatabase(
-                fname=ranking_db_fname, region_sets = pr_all_target_regions)
-        l_motifs = [x.split(",") for x in cistromes.var["motifs"]]
-        l_motifs_idx = [
-             [ctx_db.db_rankings.index.get_loc(x) for x in m] for m in l_motifs]
-        rankings = ctx_db.db_rankings.to_numpy()
-        # Generate dataframe with TFs on columns and regions on rows
-        # values are motif rankings. The best ranking (i.e lowest value)
-        # is used across each motif annotated to the TF
-        max_rank = np.array([rankings[x].min(0) for x in l_motifs_idx]).T
-        # convert regions to cistrome coordinates
-        db_regions_cistrome_regions = ctx_db.regions_to_db.copy() \
-            .groupby("Query")["Target"].apply(lambda x: list(x))
-        df_max_rank = pd.DataFrame(
-              max_rank,
-              index = ctx_db.db_rankings.columns, # db region names
-              columns = cistromes.var_names     # TF names
-        )
-        df_max_rank["cistrome_region_coord"] = db_regions_cistrome_regions.loc[df_max_rank.index].values
-        df_max_rank = df_max_rank.explode("cistrome_region_coord")
-        df_max_rank = df_max_rank.set_index("cistrome_region_coord")
-        df_max_rank = df_max_rank.groupby("cistrome_region_coord").min()
-        
-        print("Sample rows from df_max_rank:")
-        print(df_max_rank.head())
+def get_max_rank_of_motif_for_each_TF(cistromes: mudata.AnnData, ranking_db_fname: str) -> pd.DataFrame:
+    """
+    Calculates the maximum rank of motifs for each transcription factor (TF) in the provided cistrome data.
+    
+    Args:
+        cistromes: AnnData object containing cistrome data.
+        ranking_db_fname: Path to the ranking database file.
+    
+    Returns:
+        A pandas DataFrame with the maximum rank of motifs for each TF, indexed by cistrome regions.
+    """
+    # Read database for target regions
+    pr_all_target_regions = pr.PyRanges(
+        region_names_to_coordinates(cistromes.obs_names))
+    ctx_db = cisTargetDatabase(
+        fname=ranking_db_fname, region_sets=pr_all_target_regions)
+    
+    # Extract motifs
+    l_motifs = [x.split(",") for x in cistromes.var["motifs"]]
+    
+    # Map motifs to rankings, skipping invalid entries
+    l_motifs_idx = []
+    to_remove = []  # To track problematic regions for removal
 
+    for i, m in enumerate(l_motifs):
+        valid_motifs = [x for x in m if x in ctx_db.db_rankings.index and x.strip()]
+        if len(valid_motifs) < len(m):
+            print(f"Skipping invalid motifs in region {i}: {set(m) - set(valid_motifs)}")
+            # Mark region for removal if invalid motifs are present
+            to_remove.append(i)
+        if valid_motifs:  # Only append if there are valid motifs
+            l_motifs_idx.append([ctx_db.db_rankings.index.get_loc(x) for x in valid_motifs])
+
+    # Remove problematic regions from `cistromes` and `l_motifs`
+    if to_remove:
+        print(f"Removing problematic regions: {to_remove}")
+        valid_indices = [i for i in range(len(l_motifs)) if i not in to_remove]
+        cistromes = cistromes[:, valid_indices]
+        l_motifs = [l_motifs[i] for i in valid_indices]
+
+    rankings = ctx_db.db_rankings.to_numpy()
+    
+    # Generate max_rank, filling empty indices with np.inf
+    max_rank = []
+    for x in l_motifs_idx:
+        if len(x) > 0:
+            max_rank.append(rankings[x].min(0))  # Calculate min rank for valid indices
+        else:
+            max_rank.append(np.full(rankings.shape[1], np.inf))  # Fill with np.inf for empty motifs
+
+    max_rank = np.array(max_rank).T
+    
+    
+    
+
+    
+    # Convert regions to cistrome coordinates
+    db_regions_cistrome_regions = ctx_db.regions_to_db.copy() \
+        .groupby("Query")["Target"].apply(lambda x: list(x))
+    
+    print("Shape of max_rank:", max_rank.shape)
+    print("Length of db_rankings columns (regions):", len(ctx_db.db_rankings.columns))
+    print("Length of cistromes.var_names (TFs):", len(cistromes.var_names))
         
-        return df_max_rank
+    
+    df_max_rank = pd.DataFrame(
+        max_rank,
+        index=ctx_db.db_rankings.columns,  # db region names
+        columns=cistromes.var_names       # TF names
+    )
+    df_max_rank["cistrome_region_coord"] = db_regions_cistrome_regions.loc[df_max_rank.index].values
+    df_max_rank = df_max_rank.explode("cistrome_region_coord")
+    df_max_rank = df_max_rank.set_index("cistrome_region_coord")
+    df_max_rank = df_max_rank.groupby("cistrome_region_coord").min()
+    
+    print("Sample rows from df_max_rank:")
+    print(df_max_rank.head())
+    
+    return df_max_rank
+
+
 
 def calculate_triplet_score(
         cistromes: mudata.AnnData,

@@ -591,15 +591,13 @@ def prepare_motif_enrichment_results(
     from scenicplus.data_wrangling.cistarget_wrangling import get_and_merge_cistromes
     log.info("Reading multiome MuData.")
     mdata = mudata.read(multiome_mudata_fname.__str__())
-    print(mdata)
     log.info("Getting cistromes.")
     adata_direct_cistromes, adata_extended_cistromes = get_and_merge_cistromes(
         paths_to_motif_enrichment_results=paths_to_motif_enrichment_results,
         scplus_regions=set(mdata["scATAC"].var_names),
         direct_annotation=direct_annotation,
         extended_annotation=extended_annotation)
-    print('adata_direct_cistromes: ', adata_direct_cistromes)
-    print('adata_extended_cistromes: ', adata_extended_cistromes)
+
     # Get transcription factor names from cistromes
     # Later, to calculate TF-to-gene relationships these TFs will be used.
     TFs = list(
