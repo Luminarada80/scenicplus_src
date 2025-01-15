@@ -159,44 +159,15 @@ def calculate_triplet_score(
               cistromes=cistromes,
               ranking_db_fname=ranking_db_fname)
         TF_region_iter = eRegulon_metadata[["TF", "Region"]].to_numpy()
-        
-        print("First few TFs in eRegulon_metadata['TF']: ", eRegulon_metadata["TF"].head() )
-        print("First few regions in eRegulon_metadata['Region']:", eRegulon_metadata["Region"].head())
-        print("First few rows of df_TF_region_max_rank:")
-        print(df_TF_region_max_rank.head())
-        
-        # Check overlap of TFs
-        valid_tfs = set(eRegulon_metadata["TF"]).intersection(df_TF_region_max_rank.columns)
-        print(f"Number of valid TFs: {len(valid_tfs)}")
-        
-
-        # Check overlap of regions
-        valid_regions = set(eRegulon_metadata["Region"]).intersection(df_TF_region_max_rank.index)
-        print(f"Number of valid regions: {len(valid_regions)}")
-        
-        missing_tfs = set(eRegulon_metadata["TF"]) - set(df_TF_region_max_rank.columns)
-        missing_regions = set(eRegulon_metadata["Region"]) - set(df_TF_region_max_rank.index)
-        print(f"Missing TFs: {list(missing_tfs)[:10]} (showing first 10)")
-        print(f"Missing Regions: {list(missing_regions)[:10]} (showing first 10)")
-        
-        print("Sample regions from eRegulon_metadata:")
-        print(eRegulon_metadata["Region"].head())
-
-        print("Sample regions from df_TF_region_max_rank index:")
-        print(df_TF_region_max_rank.index[:5])
 
         
-        missing_regions = []
         TF_to_region_score = []
         for TF, region in TF_region_iter:
             if TF in df_TF_region_max_rank.columns and region in df_TF_region_max_rank.index:
                 TF_to_region_score.append(df_TF_region_max_rank.loc[region, TF])
             else:
-                # missing_regions.append((region, TF))
                 TF_to_region_score.append(0)  # Or handle appropriately
-        
-        print(f'Number of missing regions from TF_to_region_score = {len(missing_regions)}')
-        
+                
         TF_to_region_score = np.array(TF_to_region_score)
         TF_to_gene_score = eRegulon_metadata["importance_TF2G"].to_numpy()
         region_to_gene_score = eRegulon_metadata["importance_R2G"].to_numpy()
@@ -211,10 +182,6 @@ def calculate_triplet_score(
         TF_to_gene_rank_ratio = (TF_to_gene_rank.astype(np.float64) + 1) / TF_to_gene_rank.shape[0]
         region_to_gene_rank_ratio = (region_to_gene_rank.astype(np.float64) + 1) / region_to_gene_rank.shape[0]
         TF_to_region_rank_ratio = (TF_to_region_rank.astype(np.float64) + 1) / TF_to_region_rank.shape[0]
-        
-        print(f"Length of TF_to_gene_rank_ratio: {len(TF_to_gene_rank_ratio)}")
-        print(f"Length of region_to_gene_rank_ratio: {len(region_to_gene_rank_ratio)}")
-        print(f"Length of TF_to_region_rank_ratio: {len(TF_to_region_rank_ratio)}")
 
         #create aggregated rank
         rank_ratios = np.array([
