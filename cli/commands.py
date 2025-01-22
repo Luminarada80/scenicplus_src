@@ -812,6 +812,7 @@ def _format_egrns(
         "importance_x_abs_rho"
     ]
     eRegulons_formatted = []
+    
     for ereg in eRegulons:
         TF = ereg.transcription_factor
         is_extended = ereg.is_extended
@@ -836,7 +837,10 @@ def _format_egrns(
         region_to_gene["Gene_signature_name"] = gene_signature_name
         region_to_gene["Region_signature_name"] = region_signature_name
         eRegulons_formatted.append(region_to_gene)
-    eRegulon_metadata = pd.concat(eRegulons_formatted)
+    if len(eRegulons_formatted) > 1:
+        eRegulon_metadata = pd.concat(eRegulons_formatted)
+    else:
+        log.info(f'WARNING: There are {len(eRegulons)} eRegulons')
     eRegulon_metadata = eRegulon_metadata.merge(
         right=tf_to_gene.rename({"target": "Gene"}, axis = 1), #TODO: rename col beforehand!
         how="left",

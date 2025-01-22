@@ -55,6 +55,7 @@ def download_gene_annotation_and_chromsizes(
     logging.basicConfig(level=level, format=format, handlers=handlers)
     log = logging.getLogger('Download gene annotation')
     dataset_name = f"{species}_gene_ensembl"
+    log.info(f'Downloading {dataset_name} from ENSEMBL_MART_ENSEMBL')
     server = pbm.Server(host=biomart_host, use_cache=False)
     mart = server["ENSEMBL_MART_ENSEMBL"]
     if dataset_name not in mart.list_datasets()['name'].to_numpy():
@@ -147,6 +148,7 @@ def download_gene_annotation_and_chromsizes(
             ncbi_search_assembly_report_url = requests.get(
             f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=assembly&id={ncbi_assembly_id}")
             ncbi_tries = ncbi_tries + 1
+            log.info(f'\tTried {ncbi_tries} / {_NCBI_MAX_RETRIES} times')
         if (ncbi_tries == _NCBI_MAX_RETRIES) and not ncbi_search_genome_id_response.ok:
             raise MaxNCBIRetriesReached
         _DocumentSummarySet_element = xml_tree.fromstring(ncbi_search_assembly_report_url.content) \
@@ -172,14 +174,27 @@ def download_gene_annotation_and_chromsizes(
                 search_term = "text",
                 url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=assembly&id={ncbi_assembly_id}")
         log.info(f"Downloading assembly information from: {ncbi_assembly_report_url}")
-        assembly_report = pd.read_csv(
-            ncbi_assembly_report_url,
-            comment = '#',
-            names = [
-            "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
-            "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
-            "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"],
-            sep = '\t')
+        try:
+            # Attempt to read the CSV file
+            assembly_report = pd.read_csv(
+                ncbi_assembly_report_url,
+                sep='\t',
+                comment='#',  # Skip commented lines
+                names=[
+                    "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
+                    "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
+                    "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
+                ]
+            )
+            print("File loaded successfully")
+        except pd.errors.ParserError as e:
+            print(f"ParserError: There was an issue with the file format: {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"RequestException: There was an issue with the network or URL: {e}")
+        except FileNotFoundError as e:
+            print(f"FileNotFoundError: Could not find the file: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
         assembly_report = assembly_report.loc[
             assembly_report['Sequence-Role'] == 'assembled-molecule']
         assembled_molecules = assembly_report['Sequence-Name'].to_list()
