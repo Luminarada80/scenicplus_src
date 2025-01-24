@@ -124,8 +124,6 @@ def _get_cistromes(
     tfs_extended = get_TF_list(
         motif_enrichment_table = motif_enrichment_table,
         annotation = extended_annotation)
-    print('tfs_direct: ', tfs_direct)
-    print('tfs_extended: ', tfs_extended)
     cistromes = []
     for tf_name in tfs_direct:
         motifs_annotated_to_tf = get_motifs_per_TF(

@@ -65,9 +65,6 @@ def process_multiome_data(
         bc_transform_func(bc) + '___cisTopic' for bc in GEX_anndata.obs_names]
     GEX_anndata.obs_names = GEX_cell_names
     ACC_cell_names = list(cisTopic_obj.cell_names)
-    
-    log.info(f'RNA anndata cell names: {GEX_anndata.obs_names[0:3]}')
-    log.info(f'ATAC cisTopic_obj cell names: {ACC_cell_names[0:3]}')
 
     # get cells with high quality (HQ cells) chromatin accessbility
     # AND gene expression profile
@@ -81,7 +78,6 @@ def process_multiome_data(
     log.info(f'cisTopic_obj.selected_model: {cisTopic_obj.selected_model}')
 
     # common_cells = [name + "___cisTopic" for name in common_cells]
-    log.info(f'cell_topic.columns: {cisTopic_obj.selected_model.cell_topic.columns}')
     log.info(f'common_cells: {common_cells[0:5]}')
     imputed_acc_obj = impute_accessibility(
         cisTopic_obj, selected_cells=common_cells, **imputed_acc_kwargs)

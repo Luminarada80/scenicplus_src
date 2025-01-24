@@ -174,27 +174,18 @@ def download_gene_annotation_and_chromsizes(
                 search_term = "text",
                 url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=assembly&id={ncbi_assembly_id}")
         log.info(f"Downloading assembly information from: {ncbi_assembly_report_url}")
-        try:
-            # Attempt to read the CSV file
-            assembly_report = pd.read_csv(
-                ncbi_assembly_report_url,
-                sep='\t',
-                comment='#',  # Skip commented lines
-                names=[
-                    "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
-                    "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
-                    "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
-                ]
-            )
-            print("File loaded successfully")
-        except pd.errors.ParserError as e:
-            print(f"ParserError: There was an issue with the file format: {e}")
-        except requests.exceptions.RequestException as e:
-            print(f"RequestException: There was an issue with the network or URL: {e}")
-        except FileNotFoundError as e:
-            print(f"FileNotFoundError: Could not find the file: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+        # Attempt to read the CSV file
+        assembly_report = pd.read_csv(
+            ncbi_assembly_report_url,
+            sep='\t',
+            comment='#',  # Skip commented lines
+            names=[
+                "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
+                "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
+                "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
+            ]
+        )
+        print("File loaded successfully")
         assembly_report = assembly_report.loc[
             assembly_report['Sequence-Role'] == 'assembled-molecule']
         assembled_molecules = assembly_report['Sequence-Name'].to_list()
@@ -439,19 +430,12 @@ def get_search_space(
     extended_annot = extended_annot.drop_duplicate_positions()
 
     log.info('Intersecting with regions.')
-    print(f'Extended annot: {extended_annot}')
     pr_regions.Chromosome = pr_regions.Chromosome.str.replace("chr", "")
     extended_annot.Chromosome = extended_annot.Chromosome.str.replace("chr", "")
     
     nearest = pr_regions.nearest(extended_annot, apply_strand_suffix=False)
-    print(f'nearest.df: {nearest.df.head()}')
-    
-    print(f"pr_regions: {pr_regions}")
-    print(f"extended_annot: {extended_annot}")
-
 
     regions_per_gene = pr_regions.join(extended_annot, apply_strand_suffix=False)
-    print(f'regions_per_gene: {regions_per_gene.df.head()}')
     regions_per_gene.Name = [
         f"{chrom}:{start}-{end}" 
         for chrom, start, end in regions_per_gene.df[["Chromosome", "Start", "End"]].to_numpy()]

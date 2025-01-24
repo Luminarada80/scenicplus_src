@@ -140,6 +140,7 @@ def build_grn(
     # preset in the gene expression matrix, so subset!
     cistromes = cistromes[
         :, cistromes.var_names[cistromes.var_names.isin(tf_to_gene['TF'])]]
+    print(f'TFs in cistome var_names: {len(cistromes.var_names[cistromes.var_names.isin(tf_to_gene["TF"])])}')
     relevant_tfs, e_modules = create_emodules(
         region_to_gene=region_to_gene,
         cistromes=cistromes,
@@ -156,14 +157,22 @@ def build_grn(
         disable_tqdm=disable_tqdm,
         n_cpu=n_cpu,
         temp_dir=temp_dir)
+    log.info(f'\tNum relevant TFs: {len(relevant_tfs)}')
+    log.info(f'\tNum e_modules: {len(e_modules)}')
     log.info('Subsetting TF2G adjacencies for TF with motif.')
     TF2G_adj_relevant = tf_to_gene.loc[tf_to_gene['TF'].isin(relevant_tfs)]
     TF2G_adj_relevant.index = TF2G_adj_relevant["TF"]
     log.info('Running GSEA...')
     if rho_dichotomize_tf2g:
         log.info("Generating rankings...")
+        log.info(f"Rho Threshold: {rho_threshold}")
+        
         TF2G_adj_relevant_pos = TF2G_adj_relevant.loc[TF2G_adj_relevant["rho"] > rho_threshold]
+        log.info(f'\tNum pos TF-TG: {len(TF2G_adj_relevant_pos)}')
+        
         TF2G_adj_relevant_neg = TF2G_adj_relevant.loc[TF2G_adj_relevant["rho"] < -rho_threshold]
+        log.info(f'\tNum neg TF-TG: {len(TF2G_adj_relevant_neg)}')
+        
         pos_TFs, c = np.unique(TF2G_adj_relevant_pos["TF"], return_counts=True)
         pos_TFs = pos_TFs[c >= min_target_genes]
         neg_TFs, c = np.unique(TF2G_adj_relevant_neg["TF"], return_counts=True)
