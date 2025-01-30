@@ -174,18 +174,42 @@ def download_gene_annotation_and_chromsizes(
                 search_term = "text",
                 url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=assembly&id={ncbi_assembly_id}")
         log.info(f"Downloading assembly information from: {ncbi_assembly_report_url}")
-        # Attempt to read the CSV file
-        assembly_report = pd.read_csv(
-            ncbi_assembly_report_url,
-            sep='\t',
-            comment='#',  # Skip commented lines
-            names=[
-                "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
-                "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
-                "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
-            ]
-        )
-        print("File loaded successfully")
+        log.info(f"\tUsing pd.read_csv")
+        try:
+            # Attempt to read the CSV file
+            assembly_report = pd.read_csv(
+                ncbi_assembly_report_url,
+                sep='\t',
+                comment='#',  # Skip commented lines
+                names=[
+                    "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
+                    "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
+                    "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
+                ]
+            )
+        except Exception as e:
+            ncbi_tries = 0
+            while not ncbi_search_assembly_id_response.ok and ncbi_tries < _NCBI_MAX_RETRIES:
+                time.sleep(0.5)
+                assembly_report_file = requests.get(ncbi_assembly_report_url)
+                ncbi_tries = ncbi_tries + 1
+                log.info(f"Encountered exception {e}, trying to download using requests")
+            
+            # Attempt to read the CSV file
+            assembly_report = pd.read_csv(
+                assembly_report_file,
+                sep='\t',
+                comment='#',  # Skip commented lines
+                names=[
+                    "Sequence-Name", "Sequence-Role", "Assigned-Molecule",
+                    "Assigned-Molecule-Location/Type", "GenBank-Accn", "Relationship",
+                    "RefSeq-Accn", "Assembly-Unit", "Sequence-Length", "UCSC-style-name"
+                ]
+            )
+            
+        
+        log.info(f"Assembly report: {assembly_report.head()}")
+        log.info("File loaded successfully")
         assembly_report = assembly_report.loc[
             assembly_report['Sequence-Role'] == 'assembled-molecule']
         assembled_molecules = assembly_report['Sequence-Name'].to_list()
@@ -281,8 +305,8 @@ def get_search_space(
     handlers = [logging.StreamHandler(stream=sys.stdout)]
     logging.basicConfig(level=level, format=format, handlers=handlers)
     log = logging.getLogger('Get search space')
-    print(f'gene_annotation: {gene_annotation.head()}')
-
+    print(f'gene_annotation:\n{gene_annotation.head()}')
+    print(f'chromsizes:\n{chromsizes.head()}')
 
     #check column names
     _gene_annotation_required_cols = [

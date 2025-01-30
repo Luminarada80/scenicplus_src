@@ -607,6 +607,10 @@ def prepare_motif_enrichment_results(
         } & set(mdata["scRNA"].var_names))
     log.info(f"Found {len(TFs)} TFs.")
     log.info(f"Saving TF names to: {out_file_tf_names.__str__()}")
+    
+    log.info(f'adata_direct_cistromes.var_names: {adata_direct_cistromes.var_names}')
+    log.info(f'adata_extended_cistromes.var_names: {adata_extended_cistromes.var_names}')
+    
     with open(out_file_tf_names, "w") as f:
         for TF in TFs:
             _ = f.write(TF)
